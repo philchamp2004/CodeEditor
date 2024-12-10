@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Code Editor</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .editor-container {
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
+            border-radius: 12px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        #editor {
+            flex: 1;
+            height: 500px;
+            border-radius: 12px 0 0 12px;
+            background-color: #282c34;
+            color: #fff;
+            padding: 15px;
+        }
+
+        iframe {
+            flex: 1;
+            height: 500px;
+            border-radius: 0 12px 12px 0;
+            border: none;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Upgrade Modal */
+        .upgrade-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .upgrade-modal .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            width: 70%;
+            text-align: center;
+        }
+
+        .upgrade-modal .plan {
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #ccc;
+        }
+
+        .upgrade-modal .plan h3 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .upgrade-modal .plan p {
+            margin-bottom: 20px;
+        }
+
+        .upgrade-modal .plan ul {
+            list-style-type: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        .upgrade-modal .plan ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #777;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Support Chat Box */
+        .chat-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .chat-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .chat-box {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            width: 300px;
+            max-height: 400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .chat-box header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .chat-box .messages {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            max-height: 250px;
+        }
+
+        .chat-box .input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-box .input-container select {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .chat-box .input-container input {
+            flex-grow: 2;
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .chat-box .input-container button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .chat-box .input-container button:hover {
+            background-color: #45a049;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1 id="mainTitle">Modern Code Editor</h1>
+    <p id="description">Schreibe deinen HTML, CSS und JavaScript-Code und klicke auf "Ausführen", um das Ergebnis live zu sehen.</p>
+
+    <!-- Code Editor and Output -->
+    <div class="editor-container">
+        <div id="editor">
+            <h3>Code Editor</h3>
+            <p>Schreibe hier deinen HTML-Code, CSS oder JavaScript!</p>
+            <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="de"&gt;
+    &lt;head&gt;
+        &lt;meta charset="UTF-8"&gt;
+        &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+        &lt;title&gt;Beispielseite&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;h1&gt;Willkommen auf meiner Beispielseite!&lt;/h1&gt;
+        &lt;p&gt;Dies ist ein einfaches Beispiel, das die Funktionen des Editors zeigt.&lt;/p&gt;
+        &lt;p&gt;Viel Spaß beim Experimentieren!&lt;/p&gt;
+    &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        </div>
+        <iframe id="output" title="Ausgabe" src="about:blank"></iframe>
+    </div>
+
+    <!-- Action Buttons -->
+    <button id="runBtn" onclick="runCode()">Code ausführen</button>
+    <button id="upgradeBtn" onclick="showUpgradeModal()">Upgrade</button>
+    <button id="downloadBtn" onclick="downloadCode()">Code herunterladen</button>
+
+    <!-- Upgrade Modal -->
+    <div class="upgrade-modal" id="upgradeModal">
+        <div class="modal-content">
+            <div class="plan">
+                <h3>Basic Plan</h3>
+                <p>5€/Monat</p>
+                <ul>
+                    <li>Zugang zu grundlegenden Funktionen</li>
+                    <li>Begrenzte Projekte</li>
+                    <li>1 GB Speicherplatz</li>
+                </ul>
+            </div>
+            <div class="plan">
+                <h3>Pro Plan</h3>
+                <p>15€/Monat</p>
+                <ul>
+                    <li>Alle Funktionen des Basic Plans</li>
+                    <li>Unbegrenzte Projekte</li>
+                    <li>5 GB Speicherplatz</li>
+                    <li>Priorisierter Support</li>
+                </ul>
+            </div>
+            <div class="plan">
+                <h3>Enterprise</h3>
+                <p>Kontaktieren Sie uns</p>
+                <ul>
+                    <li>Alle Funktionen des Pro Plans</li>
+                    <li>Individuelle Lösungen</li>
+                    <li>Unbegrenzter Speicherplatz</li>
+                    <li>Dedicated Support</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Support Chat -->
+    <div class="chat-btn" onclick="toggleChat()">💬</div>
+    <div class="chat-box" id="chatBox">
+        <header>Support Chat</header>
+        <div class="messages" id="chatMessages"></div>
+        <div class="input-container">
+            <select id="contactSelect">
+                <option value="support">Support</option>
+                <option value="sales">Sales</option>
+                <option value="tech">Technical Support</option>
+            </select>
+            <input type="text" id="chatInput" placeholder="Schreibe eine Nachricht..." />
+            <button onclick="sendMessage()">Senden</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Powered by <a href="https://djphilippe.de" target="_blank">djphilippe.de</a></p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js"></script>
+    <script>
+        // Code Editor Initialisierung
+        var editor = ace.edit("editor");
+        editor.setTheme("ace/theme/github");
+        editor.session.setMode("ace/mode/html");
+
+        // Funktion zum Ausführen des Codes
+        function runCode() {
+            var code = editor.getValue();
+            var output = document.getElementById("output");
+            output.srcdoc = code;
+        }
+
+        // Upgrade Modal
+        function showUpgradeModal() {
+            document.getElementById('upgradeModal').style.display = 'flex';
+        }
+
+        // Support Chat Funktionen
+        function toggleChat() {
+            var chatBox = document.getElementById('chatBox');
+            chatBox.style.display = chatBox.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function sendMessage() {
+            var message = document.getElementById('chatInput').value;
+            if (message.trim()) {
+                var chatMessages = document.getElementById('chatMessages');
+                var newMessage = document.createElement('div');
+                var selectedContact = document.getElementById('contactSelect').value;
+                newMessage.textContent = `[${new Date().toLocaleTimeString()}] ${selectedContact}: ${message}`;
+                chatMessages.appendChild(newMessage);
+                document.getElementById('chatInput').value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        // Funktion zum Herunterladen des Codes
+        function downloadCode() {
+            var code = editor.getValue();
+            var blob = new Blob([code], { type: 'text/html' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'index.html';
+            link.click();
+        }
+
+        // Funktion zum Zufälligen Farbwechsel (alle 8 Sekunden)
+        function randomColor() {
+            const randomHex = () => "#" + Math.floor(Math.random()*16777215).toString(16);
+            
+            // Ändert die Farben alle 8 Sekunden
+            setInterval(function() {
+                // Zufällige Farben generieren
+                const bodyColor = randomHex();
+                const textColor = randomHex();
+                const buttonColor = randomHex();
+                const headerColor = randomHex();
+                
+                // Farben anwenden
+                document.body.style.backgroundColor = bodyColor;
+                document.body.style.color = textColor;
+                document.querySelector("h1").style.color = headerColor;
+                document.querySelectorAll("button").forEach(btn => btn.style.backgroundColor = buttonColor);
+            }, 8000); // Alle 8 Sekunden
+        }
+
+        // Starte die Funktion
+        randomColor();
+    </script>
+
+</body>
+</html>
+
+
